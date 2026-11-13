@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심플 투두리스트</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.task-completed {
+text-decoration: line-through;
+color: #94a3b8;
+}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center py-10 px-4">
+
+<div class="max-w-2xl w-full bg-white shadow-lg rounded-2xl p-6 md:p-8">
+<!-- Header -->
+<header class="mb-6 border-b pb-4">
+<h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+<i class="fa-solid fa-list-check text-indigo-600"></i>
+투두리스트 (Todo List)
+</h1>
+<p class="text-sm text-slate-500 mt-1">등록일, 할 일, 기한을 관리하고 완료해 보세요.</p>
+</header>
+
+<!-- Input Form -->
+<div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+<div class="md:col-span-2">
+<label class="block text-xs font-semibold text-slate-600 mb-1">할 일 내용</label>
+<input type="text" id="todo-input" placeholder="어떤 일을 해야 하나요?"
+class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+</div>
+<div>
+<label class="block text-xs font-semibold text-slate-600 mb-1">기한</label>
+<input type="date" id="date-input"
+class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+</div>
+<div class="md:col-span-3">
+<button type="button" id="add-btn"
+class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+<i class="fa-solid fa-plus"></i> 할 일 추가하기
+</button>
+</div>
+</div>
+
+<!-- Todo Table -->
+<div class="overflow-x-auto border border-slate-200 rounded-xl">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
+<th class="py-3 px-4 text-center w-12">완료</th>
+<th class="py-3 px-4 cursor-pointer hover:bg-slate-100 transition" id="sort-created">
+등록일 <span id="sort-created-icon">↕</span>
+</th>
+<th class="py-3 px-4">할 일</th>
+<th class="py-3 px-4 cursor-pointer hover:bg-slate-100 transition" id="sort-due">
+기한 <span id="sort-due-icon">↕</span>
+</th>
+<th class="py-3 px-4 text-center w-16">삭제</th>
+</tr>
+</thead>
+<tbody id="todo-table-body" class="divide-y divide-slate-200 text-sm">
+</tbody>
+</table>
+</div>
+
+<div id="empty-message" class="text-center py-8 text-slate-400 hidden">
+등록된 할 일이 없습니다. 새로운 할 일을 추가해보세요!
+</div>
+</div>
+
+<script>
+let todos = [];
+try {
+todos = JSON.parse(localStorage.getItem('todos')) || [];
+} catch(e) {
+todos = [];
+}
+
+let sortCreatedDir = 0;
+let sortDueDir = 0;
+
+const todoInput = document.getElementById('todo-input');
+const dateInput = document.getElementById('date-input');
+const addBtn = document.getElementById('add-btn');
+const tableBody = document.getElementById('todo-table-body');
+const emptyMessage = document.getElementById('empty-message');
+
+const sortCreatedBtn = document.getElementById('sort-created');
+const sortDueBtn = document.getElementById('sort-due');
+const sortCreatedIcon = document.getElementById('sort-created-icon');
+const sortDueIcon = document.getElementById('sort-due-icon');
+
+dateInput.valueAsDate = new Date();
+
+// 버튼 클릭 이벤트 직접 바인딩
+addBtn.addEventListener('click', addTodo);
+
+// 엔터키 입력 시 추가
+todoInput.addEventListener('keypress', (e) => {
+if (e.key === 'Enter') addTodo();
+});
+
+function addTodo() {
+const text = todoInput.value.trim();
+const dueDate = dateInput.value;
+
+if (!text) {
+alert('할 일 내용을 입력해 주세요!');
+return;
+}
+if (!dueDate) {
+alert('기한을 선택해 주세요!');
+return;
+}
+
+const now = new Date();
+const createdDate = ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+const newTodo = {
+id: Date.now(),
+text: text,
+created: createdDate,
+dueDate: dueDate,
+completed: false
+};
+
+todos.push(newTodo);
+saveAndRender();
+todoInput.value = '';
+dateInput.valueAsDate = new Date();
+}
+
+function toggleTodo(id) {
+todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+saveAndRender();
+}
+
+function deleteTodo(id) {
+todos = todos.filter(t => t.id !== id);
+saveAndRender();
+}
+
+function saveAndRender() {
+localStorage.setItem('todos', JSON.stringify(todos));
+render();
+}
+
+sortCreatedBtn.addEventListener('click', () => {
+sortDueDir = 0;
+sortDueIcon.textContent = '↕';
+sortCreatedDir = (sortCreatedDir === 1) ? -1 : 1;
+sortCreatedIcon.textContent = sortCreatedDir === 1 ? '▲' : '▼';
+render();
+});
+
+sortDueBtn.addEventListener('click', () => {
+sortCreatedDir = 0;
+sortCreatedIcon.textContent = '↕';
+sortDueDir = (sortDueDir === 1) ? -1 : 1;
+sortDueIcon.textContent = sortDueDir === 1 ? '▲' : '▼';
+render();
+});
+
+function render() {
+let processedTodos = [...todos];
+
+if (sortCreatedDir !== 0) {
+processedTodos.sort((a, b) => sortCreatedDir === 1 ? a.created.localeCompare(b.created) : b.created.localeCompare(a.created));
+} else if (sortDueDir !== 0) {
+processedTodos.sort((a, b) => sortDueDir === 1 ? a.dueDate.localeCompare(b.dueDate) : b.dueDate.localeCompare(a.dueDate));
+}
+
+tableBody.innerHTML = '';
+if (processedTodos.length === 0) {
+emptyMessage.classList.remove('hidden');
+} else {
+emptyMessage.classList.add('hidden');
+processedTodos.forEach(todo => {
+const tr = document.createElement('tr');
+tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+
+tr.innerHTML = &lt;td class="py-3 px-4 text-center"&gt; &lt;input type="checkbox"${todo.completed ? 'checked' : ''} onchange="toggleTodo(
+
+{todo.created}</td>
+<td class="py-3 px-4 font-medium 
+
+{escapeHtml(todo.text)}</td>
+<td class="py-3 px-4 text-slate-600 font-mono text-xs">
+
+{todo.id})" class="text-slate-400 hover:text-red-500 transition p-1">
+<i class="fa-solid fa-trash-can"></i>
+</button>
+</td>
+`;
+tableBody.appendChild(tr);
+});
+}
+}
+
+function escapeHtml(str) {
+return str.replace(/[&<>'"]/g, tag => ({ '&': '&', '<': '<', '>': '>', "'": ''', '"': '"' }[tag] || tag));
+}
+
+render();
+</script>
+</body>
+</html>
